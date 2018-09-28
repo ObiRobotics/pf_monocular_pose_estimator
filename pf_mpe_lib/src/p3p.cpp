@@ -57,7 +57,7 @@
  * \brief File containing the definitions of the functions for the P3P class
  */
 
-#include "monocular_pose_estimator_lib/p3p.h"
+#include "pf_mpe_lib/p3p.h"
 
 namespace monocular_pose_estimator
 {
@@ -243,6 +243,12 @@ int P3P::solveQuartic(const Eigen::Matrix<double, 5, 1> & factors, Eigen::Matrix
   double D = factors(3);
   double E = factors(4);
 
+  if (A==0)
+  {
+	  ROS_INFO("only polynomial of order 3 --> A==0");
+  }
+  
+  
   double A_pw2 = A * A;
   double B_pw2 = B * B;
   double A_pw3 = A_pw2 * A;

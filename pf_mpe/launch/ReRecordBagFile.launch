@@ -1,0 +1,11 @@
+<launch> 
+	<!-- rosbag play -->
+	<node pkg="rosbag" type="play" name="player" args=" -s 41 -u 118 $(find monocular_pose_estimator)/recordings/UAVwithTarget_fulldata.bag"/> 
+	<!-- <node pkg="rosbag" type="play" name="player1" args="-s 44 -u 29 -r 0.3 /monocular_pose_estimator/image_with_detections:=/monocular_pose_estimator/image_with_detections1 /monocular_pose_estimator/timePoseEst:=/monocular_pose_estimator/timePoseEst1 /monocular_pose_estimator/timeInitEst:=/monocular_pose_estimator/timeInitEst1 $(find monocular_pose_estimator)/bags/350_Faes.bag"/> -->
+	
+	<!-- rosbag record -->
+	<node pkg="rosbag" type="record" name="record" args="-e /mv_25001329/image_raw /mv_25001329/camera_info /imu0 -o $(find monocular_pose_estimator)/recordings/UAVwithTarget.bag"/>
+</launch>
+
+
+<!-- <remap from="original topic name" to="new topic name" /> -->

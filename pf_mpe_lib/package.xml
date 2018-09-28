@@ -1,15 +1,16 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>monocular_pose_estimator_lib</name>
+  <name>pf_mpe_lib</name>
   <version>0.0.0</version>
-  <description>The monocular_pose_estimator_lib package</description>
+  <description>The pf-mpe with package</description>
 
-  <maintainer email="faessler@ifi.uzh.ch">Matthias Faessler</maintainer>
+  <maintainer email="lteixeira@mavt.ethz.ch">Lucas Teixeira</maintainer>
   <license>GNU GPL</license>
 
   <author>Karl Schwabe</author>
   <author>Matthias Faessler</author>
   <author>Elias Mueggler</author>
+  <author>Marco Moos</author>
 
   <buildtool_depend>catkin</buildtool_depend>
   <buildtool_depend>catkin_simple</buildtool_depend>

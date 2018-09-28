@@ -26,7 +26,7 @@
  *
  */
 
-#include "monocular_pose_estimator_lib/combinations.h"
+#include <pf_mpe_lib/combinations.h>
 
 namespace monocular_pose_estimator
 {

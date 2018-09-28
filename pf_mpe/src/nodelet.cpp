@@ -16,8 +16,8 @@
 #include <memory>
 #include <pluginlib/class_list_macros.h>
 
-#include "monocular_pose_estimator/nodelet.h"
-#include "monocular_pose_estimator/monocular_pose_estimator.h"
+#include "pf_mpe/nodelet.h"
+
 
 namespace monocular_pose_estimator {
 

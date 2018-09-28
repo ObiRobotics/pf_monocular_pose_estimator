@@ -1,0 +1,75 @@
+<launch> 
+
+	<!-- Name of the YAML file containing the marker positions -->
+	<arg name="YAML_file_name" default="MarkerPos_UAV1"/>
+
+	<!-- File containing the the marker positions in the trackable's frame of reference -->
+	<arg name="marker_positions_file" default="$(find monocular_pose_estimator)/marker_positions/$(arg YAML_file_name).yaml"/> 
+
+	<group ns="monocular_pose_estimator" >
+		<node name="monocular_pose_estimator" pkg="monocular_pose_estimator" type="monocular_pose_estimator" output="screen" respawn="false">  <!-- output="screen" launch-prefix="xterm -e gdb -args" -->
+			<rosparam command="load" file="$(arg marker_positions_file)"/>
+			<param name= "threshold_value" value = "240" />
+			<param name= "gaussian_sigma" value = "0.6" /> 
+			<param name= "min_blob_area" value = "20" />
+			<param name= "max_blob_area" value = "160" />
+			<param name= "max_width_height_distortion" value = "0.7" />
+			<param name= "max_circular_distortion" value = "0.7" />
+			<param name= "back_projection_pixel_tolerance" value = "5" /> 	 
+			<param name= "nearest_neighbour_pixel_tolerance" value = "7" /> 
+			<param name= "certainty_threshold" value = "1" /> 				    <!-- needs to be 1 to make sure all point are correctly reproduced in the initialisation -->
+			<param name= "valid_correspondence_threshold" value = "0.5" /> 	
+			<param name= "number_of_occlusions" value = "0" />					<!-- occlusions which can be introduced for testing the algorithm -->
+			<param name= "number_of_false_detections" value = "0" />			<!-- false detections which can be introduced for testing the algorithm -->
+			
+			
+			<!-- UAV SPECIFICATIONS -->													
+			<param name= "active_markers" value = "True" />							
+			<param name= "numUAV" value = "1" />										
+			<param name= "numberOfMarkersUAV1" value = "5" />
+			<param name= "numberOfMarkersUAV2" value = "0" />
+			<param name= "numberOfMarkersUAV3" value = "0" />
+			<param name= "numberOfMarkersUAV4" value = "0" />
+			
+			
+			<!-- PARTICLE FILTER PARAMETER -->
+			<param name= "bUseParticleFilter" value = "true" />
+			<param name= "N_Particle" value = "100" />
+			<param name= "maxAngularNoise" value = "0.015" /> 		<!--  0.015 ~30°/sec--> 
+			<param name= "minAngularNoise" value = "-0.015" />		<!-- -0.015 -->
+			<param name= "maxTransitionNoise" value = "0.015" />	<!--  0.015 -->
+			<param name= "minTransitionNoise" value = "-0.015" />	<!-- -0.015 -->
+			<param name= "back_projection_pixel_tolerance_PF" value = "4" /> <!-- 4 -->
+			
+			
+			<!-- MARKER DOWNGRADE -->
+			<param name= "bMarkerNr1" value = "False" />
+			<param name= "bMarkerNr2" value = "False" />
+			<param name= "bMarkerNr3" value = "False" />
+			<param name= "bMarkerNr4" value = "False" />
+			<param name= "bMarkerNr5" value = "False" />
+			
+			<!-- MISCELLANEOUS -->
+			<param name= "useOnlineExposeTimeControl" value = "false" />	
+			<param name= "expose_time_base" value = "2000" />		 <!-- Start exposure time, if calculated online -->
+			<param name= "bUseCamPos" value = "false" />			 <!-- Boolean which tells if the movement of the camera is considered or not -->
+		</node> 
+	
+	<!-- Show the image with the UAV detection -->
+	   <node name="view_visualisation_image" pkg="image_view" type="image_view" args="image:=/monocular_pose_estimator/image_with_detections" /> -->
+
+	</group>
+
+	<!-- rosbag play -->
+	   <node pkg="rosbag" type="play" name="player" args=" -r 1 -s 0 $(find monocular_pose_estimator)/recordings/UAVOutdoorExposureTime300us.bag"/> --> <!-- removed -l in args and output="screen" 1 -->
+	  
+	
+	<!-- rosbag record -->
+	<!--   <node pkg="rosbag" type="record" name="record" args="-e /monocular_pose_estimator/FailFlag /monocular_pose_estimator/estimated_pose_UAV1 /monocular_pose_estimator/timePoseEst /UAVMaMo/vrpn_client/estimated_transform /camOnStick2MaMo/vrpn_client/estimated_transform -split -duration=7300000 -o $(find monocular_pose_estimator)/bags/Test1_withPF.bag"/> --> <!-- /monocular_pose_estimator/image_with_detections /monocular_pose_estimator/PoseParticles1 /monocular_pose_estimator/ResampledParticles1 /monocular_pose_estimator/FailFlag /monocular_pose_estimator/timePoseEst /monocular_pose_estimator/timeInitEst /monocular_pose_estimator/estimated_pose_UAV1 /UAVMaMo/vrpn_client/estimated_transform /camOnStick2MaMo/vrpn_client/estimated_transform-->
+			<!-- /UAV_small1/vrpn_client/raw_transform /UAV_small1/vrpn_client/estimated_transform use the object name instead of stump or check the name with rostopic list (ev record also tf) -->
+</launch>
+
+
+<!-- <remap from="original topic name" to="new topic name" /> -->
+
+

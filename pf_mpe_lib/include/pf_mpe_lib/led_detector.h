@@ -18,6 +18,9 @@
  *
  *  Created on: Jul 29, 2013
  *      Author: karl Schwabe
+ *
+ *  Adapted till: April 30 2016
+ *      Author: Marco Moos
  */
 
 /**
@@ -85,7 +88,9 @@ public:
                        const double &min_blob_area, const double &max_blob_area,
                        const double &max_width_height_distortion, const double &max_circular_distortion,
                        List2DPoints &pixel_positions, std::vector<cv::Point2f> &distorted_detection_centers,
-                       const cv::Mat &camera_matrix_K, const std::vector<double> &camera_distortion_coeffs);
+                       const cv::Mat &camera_matrix_K, const std::vector<double> &camera_distortion_coeffs,
+		       unsigned & number_of_occlusions, unsigned & number_of_false_detections, bool active_markers,
+		       bool useOnlineExposeTimeControl, int expose_time_base);
 
   /**
    * Calculates the region of interest (ROI) in the distorted image in which the points lie.
@@ -103,7 +108,8 @@ public:
    *
    */
   static cv::Rect determineROI(List2DPoints pixel_positions, cv::Size image_size, const int border_size,
-                               const cv::Mat &camera_matrix_K, const std::vector<double> &camera_distortion_coeffs);
+                               const cv::Mat &camera_matrix_K, const std::vector<double> &camera_distortion_coeffs,
+			       cv::RotatedRect &region_of_interest_ellipse, int ROI_dyn);
 
 private:
 
@@ -134,6 +140,25 @@ private:
    */
   static void distortPoints(const std::vector<cv::Point2f> & src, std::vector<cv::Point2f> & dst,
                             const cv::Mat & camera_matrix_K, const std::vector<double> & distortion_matrix);
+  
+  /*
+   * Occludes detected LEDs
+   */
+  static void occludeDetections(std::vector<cv::Point2f> distorted_points, 
+  			  std::vector<cv::Point2f> & distorted_detection_centers, std::vector<cv::Point2f> & occludedLEDs, int number_of_occlusions);
+  
+  /*
+   * Adds false detections
+   */
+  static void insertFalseDetections(std::vector<cv::Point2f> distorted_points, 
+		  std::vector<cv::Point2f> & distorted_detection_centers, int number_of_false_detections);
+
+  /*
+   * Changes the expose time of the camera
+   */
+  static void ExposeTimeControl(bool increase, bool decrease, int expose_time_base);
+
+
 
 };
 

@@ -18,9 +18,12 @@
  *
  * Created on: Jul 29, 2013
  * Author: Karl Schwabe
+ *
+ * Adapted till: April 30 2016
+ * Author: Marco Moos
  */
 
-#include "monocular_pose_estimator/monocular_pose_estimator.h"
+#include "pf_mpe/monocular_pose_estimator.h"
 
 int main(int argc, char* argv[])
 {

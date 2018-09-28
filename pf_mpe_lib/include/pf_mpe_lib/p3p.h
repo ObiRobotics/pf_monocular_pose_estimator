@@ -64,6 +64,7 @@
 #include <Eigen/Dense>
 #include <math.h>
 #include <stdlib.h>
+#include "ros/ros.h"
 
 namespace monocular_pose_estimator
 {

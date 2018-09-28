@@ -12,12 +12,14 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with RPG-MPE.  If not, see <http://www.gnu.org/licenses/>.
-
 /*
  * visualization.h
  *
  *  Created on: Mar 21, 2014
  *      Author: Matthias Faessler
+ *
+ * Adapted till: April 30 2016
+ * Author: Marco Moos
  */
 
 /**
@@ -31,6 +33,7 @@
 
 #include <Eigen/Geometry>
 #include <opencv2/opencv.hpp>
+#include "pf_mpe_lib/datatypes.h"
 
 namespace monocular_pose_estimator
 {
@@ -60,11 +63,14 @@ public:
    */
   static void projectOrientationVectorsOnImage(cv::Mat &image, const std::vector<cv::Point3f> points_to_project,
                                                const cv::Mat camera_matrix_K,
-                                               const std::vector<double> camera_distortion_coeffs);
+                                               const std::vector<double> camera_distortion_coeffs, double weight, int colorSwitch);
 
-  static void createVisualizationImage(cv::Mat &image, Eigen::Matrix4d transform, const cv::Mat camera_matrix_K,
-                                       const std::vector<double> camera_distortion_coeffs, cv::Rect region_of_interest,
-                                       std::vector<cv::Point2f> distorted_detection_centers);
+  static void createVisualizationImage(cv::Mat &image, std::vector<Eigen::Matrix4d> transform, const cv::Mat camera_matrix_K,
+                                       const std::vector<double> camera_distortion_coeffs, std::vector<cv::Rect> region_of_interest_Vec,
+									   std::vector<std::vector<cv::Point2f>> distorted_detection_centers_Vec,
+									   unsigned number_of_false_detections, unsigned number_of_occlusions,
+									   std::vector<bool> found_body_pose, int N_Particle, std::vector<std::vector<Eigen::Matrix4d>> PoseParticle,
+									   std::vector<RowXd> probPart, bool useParticleFilter, std::vector<List4DPoints> object_points_Vec, cv::RotatedRect region_of_interest_ellipse);
 
 };
 

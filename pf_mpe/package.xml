@@ -1,16 +1,16 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>monocular_pose_estimator</name>
+  <name>pf_mpe</name>
   <version>0.0.0</version>
-  <description>The monocular_pose_estimator package</description>
-
-  <maintainer email="faessler@ifi.uzh.ch">Matthias Faessler</maintainer>
+  <description>The pf_monocular_pose_estimator package</description>
+  
+  <maintainer email="lteixeira@mavt.ethz.ch">Lucas Teixeira</maintainer>
   <license>GNU GPL</license>
 
   <author>Karl Schwabe</author>
   <author>Matthias Faessler</author>
   <author>Elias Mueggler</author>
-
+  <author>Marco Moos</author>
 
   <buildtool_depend>catkin</buildtool_depend>
   <buildtool_depend>catkin_simple</buildtool_depend>
@@ -20,12 +20,13 @@
   <depend>eigen_catkin</depend>
   <depend>geometry_msgs</depend>
   <depend>image_transport</depend>
-  <depend>monocular_pose_estimator_lib</depend>
+  <depend>pf_mpe_lib</depend>
   <depend>nodelet</depend>
   <depend>sensor_msgs</depend>
   <depend>roscpp</depend>
+  <depend>tf</depend>
 
   <export>
-    <nodelet plugin="${prefix}/monocular_pose_estimator_nodelet.xml"/>
+    <nodelet plugin="${prefix}/pf_monocular_pose_estimator_nodelet.xml"/>
   </export>
 </package>

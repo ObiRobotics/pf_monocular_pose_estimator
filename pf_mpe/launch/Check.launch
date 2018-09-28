@@ -1,0 +1,70 @@
+<launch> 
+
+	<!-- Name of the YAML file containing the marker positions -->
+	<arg name="YAML_file_name" default="CheckMarker"/>
+
+	<!-- File containing the the marker positions in the trackable's frame of reference -->
+	<arg name="marker_positions_file" default="$(find monocular_pose_estimator)/marker_positions/$(arg YAML_file_name).yaml"/> 
+
+	<group ns="monocular_pose_estimator" >
+		<node name="monocular_pose_estimator" pkg="monocular_pose_estimator" type="monocular_pose_estimator" output="screen" respawn="false">  <!-- output="screen" launch-prefix="xterm -e gdb -args" -->
+			<rosparam command="load" file="$(arg marker_positions_file)"/>
+			<param name= "threshold_value" value = "70" />
+			<param name= "gaussian_sigma" value = "0.6" /> 
+			<param name= "min_blob_area" value = "5" />
+			<param name= "max_blob_area" value = "900" />
+			<param name= "max_width_height_distortion" value = "0.7" />
+			<param name= "max_circular_distortion" value = "0.7" />
+			<param name= "back_projection_pixel_tolerance" value = "5" /> 		<!-- 5 -->
+			<param name= "nearest_neighbour_pixel_tolerance" value = "7" /> 	<!-- 7 -->
+			<param name= "certainty_threshold" value = "1" />					<!-- 0.75 -->
+			<param name= "valid_correspondence_threshold" value = "0.1" />	 	<!-- 0.7 -->
+			<param name= "number_of_occlusions" value = "0" />
+			<param name= "number_of_false_detections" value = "0" />
+
+			
+			<!-- UAV SPECIVICATIONS -->
+			<param name= "active_markers" value = "True" />
+			<param name= "numUAV" value = "1" />
+			<param name= "numberOfMarkersUAV1" value = "14" />
+			<param name= "numberOfMarkersUAV2" value = "0" />
+			<param name= "numberOfMarkersUAV3" value = "0" />
+			<param name= "numberOfMarkersUAV4" value = "0" />
+			
+			
+			<!-- PARTICLE FILTER PARAMETER -->
+			
+			<param name= "useParticleFilter" value = "True" />
+			<param name= "N_Particle" value = "100" />
+			<param name= "maxAngularNoise" value = "0.01" /> 					<!--  0.02 -->
+			<param name= "minAngularNoise" value = "-0.01" />					<!-- -0.02 -->
+			<param name= "maxTransitionNoise" value = "0.015" />				<!--  0.02 -->
+			<param name= "minTransitionNoise" value = "-0.015" />				<!-- -0.02 -->
+			<param name= "back_projection_pixel_tolerance_PF" value = "5" /> 	<!-- 5 -->
+						
+			
+			<!-- MARKER DOWNGRADE -->
+			<param name= "MarkerNr1" value = "False" />
+			<param name= "MarkerNr2" value = "False" />
+			<param name= "MarkerNr3" value = "False" />
+			<param name= "MarkerNr4" value = "False" />
+			<param name= "MarkerNr5" value = "False" />	
+		</node> 
+	
+		<node name="view_visualisation_image" pkg="image_view" type="image_view" args="image:=/monocular_pose_estimator/image_with_detections" />
+
+ <!-- <node name="view_visualisation_image1" pkg="image_view" type="image_view" args="image:=/monocular_pose_estimator/image_without_detections" /> -->
+	</group>
+
+	<!-- rosbag play -->
+	 <!-- <node pkg="rosbag" type="play" name="player" args=" -l $(find monocular_pose_estimator)/recordings/LED1.bag"/> --> <!-- removed -l in args and output="screen" Test2 -->
+	
+	<!-- rosbag record -->
+	 <node pkg="rosbag" type="record" name="record" args="-e /monocular_pose_estimator/image_with_detections /mv_25001329/image_raw --split --duration=120 -o $(find monocular_pose_estimator)/recordings/TEST.bag"/> --> <!-- /monocular_pose_estimator/image_with_detections -->
+
+</launch>
+
+
+<!-- <remap from="original topic name" to="new topic name" /> -->
+
+

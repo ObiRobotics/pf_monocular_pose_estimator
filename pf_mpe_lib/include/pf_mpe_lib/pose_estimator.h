@@ -12,12 +12,14 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with RPG-MPE.  If not, see <http://www.gnu.org/licenses/>.
-
 /*
  * PoseEstimator.h
  *
  *  Created on: Jul 29, 2013
  *      Author: Karl Schwabe
+ *
+ *  Adapted till: April 30 2016
+ *  Author: Marco Moos
  */
 
 /** \file pose_estimator.h
@@ -32,13 +34,20 @@
 #include <Eigen/Geometry>
 #include <math.h>
 #include <vector>
-#include "monocular_pose_estimator_lib/datatypes.h"
-#include "monocular_pose_estimator_lib/led_detector.h"
-#include "monocular_pose_estimator_lib/visualization.h"
-#include "monocular_pose_estimator_lib/combinations.h"
-#include "monocular_pose_estimator_lib/p3p.h"
+#include "pf_mpe_lib/datatypes.h"
+#include "pf_mpe_lib/led_detector.h"
+#include "pf_mpe_lib/visualization.h"
+#include "pf_mpe_lib/combinations.h"
+#include "pf_mpe_lib/p3p.h"
 #include <iostream>
 #include <opencv2/opencv.hpp>
+
+#include <numeric>
+#include <random>
+#include "std_msgs/Duration.h"
+
+#include <stdlib.h>
+
 
 namespace monocular_pose_estimator
 {
@@ -53,13 +62,27 @@ class PoseEstimator
 {
 
 private:
+  std::vector<Eigen::Matrix4d> PoseParticle; 						// x_m(k-1)
+  std::vector<Eigen::Matrix4d> newPoseEstimation; 					// x_m(k)   (measurement update)
+  std::vector<std::vector<Eigen::Matrix4d>> PoseParticle_Vec; 		// vector containing the PoseParticle of the different objects
+  std::vector<std::vector<Eigen::Matrix4d>> newPoseEstimation_Vec; 	// vector containing the measurement update of the different objects
+  RowXd probPart; // probability of the specific particle (beta_n)
+  std::vector<RowXd> probPart_Vec; // probability of the specific particle (beta_n)
+
   Eigen::Matrix4d current_pose_; //!< Homogeneous transformation matrix for storing the current pose of the tracked object
   Eigen::Matrix4d previous_pose_; //!< Homogeneous transformation matrix for storing the previously estimated pose of the tracked object
   Eigen::Matrix4d predicted_pose_; //!< Homogeneous transformation matrix for storing the predicted pose of the object. \see predictPose
   Matrix6d pose_covariance_; //!< A 6x6 covariance matrix that stores the covariance of the calculated pose
+  std::vector<Eigen::Matrix4d> current_pose_Vec;	// vector containing the current_poses of the different objects
+  std::vector<Eigen::Matrix4d> previous_pose_Vec;	// vector containing the previous_poses of the different objects
+  std::vector<Eigen::Matrix4d> predicted_pose_Vec;	// vector containing the predicted_poses of the different objects
+  std::vector<Matrix6d> pose_covariance_Vec; // vector containing the covariance of the different objects
+
+
   double current_time_; //!< Stores the time of the current pose
   double previous_time_; //!< Stores the time of the previous pose
   double predicted_time_; //!< Stores the time of the predicted pose
+  std::vector<List4DPoints> object_points_Vec; // vector containing the marker positions of the different objects
   List4DPoints object_points_; //!< Stores the positions of the makers/LEDs on the object being tracked in the object-fixed coordinate frame using homogeneous coordinates. It is a vector of 4D points.
   List2DPoints image_points_; //!< Stores the positions of the detected marker points found in the image. It is a vector of 2D points.
   List2DPoints predicted_pixel_positions_; //!< Stores the predicted pixel positions of the markers in the image. \see predictMarkerPositionsInImage
@@ -70,17 +93,35 @@ private:
   double certainty_threshold_; //!< Stores the ratio of how many of the back-projected points must be within the #back_projection_pixel_tolerance_ for a correspondence between the LEDs and the detections to be correct.
   double valid_correspondence_threshold_; //!< Stores the ratio of how many correspondences must be considered to be correct for the total correspondences to be considered correct. \see checkCorrespondences, initialise
   unsigned histogram_threshold_; //!< Stores the minimum numbers of entries in the initialisation histogram before an entry could be used to determine a correspondence between the LEDs and the image detections. \see correspondencesFromHistogram
-
+  
   std::vector<cv::Point2f> distorted_detection_centers_;
+  std::vector<std::vector<cv::Point2f>> distorted_detection_centers_Vec;
 
   unsigned it_since_initialized_; //!< Counter to determine whether the system has been initialised already
+  std::vector<unsigned> it_since_initialized_Vec; //!< Counter to determine whether the system has been initialised already
   cv::Rect region_of_interest_; //!< OpenCV rectangle that defines the region of interest to be processd to find the LEDs in the image
+  std::vector<cv::Rect> region_of_interest_Vec; //vector containing the region of interest for each object
   static const unsigned min_num_leds_detected_ = 4; //!< Minimum number of LEDs that need to be detected for a pose to be calculated
-  bool pose_updated_;
+  bool bPose_updated;
+  std::vector<bool> bPose_updated_Vec;
+  
+  cv::RotatedRect region_of_interest_ellipse;
+
+
+  //float PubData[4];
+
+  //bool poseEstFailed;
+  //bool found_body_pose;
+  //bool bPred;
+  //int numIter;
+  //int bFindLED;
+  
 
 public:
   cv::Mat camera_matrix_K_; //!< Variable to store the camera matrix as an OpenCV matrix
   std::vector<double> camera_distortion_coeffs_; //!< Variable to store the camera distortion parameters
+  Eigen::Matrix4d P_obsUAV; //!< Matrix storing the actual pose of the observer UAV
+  double time_obsUAV; //!< Time stamp of the pose from the observer UAV
 
   int detection_threshold_value_; //!< The current threshold value for the image for LED detection
   double gaussian_sigma_; //!< The current standard deviation of the Gaussian that will be applied to the thresholded image for LED detection
@@ -89,6 +130,45 @@ public:
   double max_width_height_distortion_; //!< This is a parameter related to the circular distortion of the detected blobs. It is the maximum allowable distortion of a bounding box around the detected blob calculated as the ratio of the width to the height of the bounding rectangle. Ideally the ratio of the width to the height of the bounding rectangle should be 1.
   double max_circular_distortion_; //!< This is a parameter related to the circular distortion of the detected blobs. It is the maximum allowable distortion of a bounding box around the detected blob, calculated as the area of the blob divided by pi times half the height or half the width of the bounding rectangle.
   unsigned roi_border_thickness_; //!< This is the thickness of the boarder (in pixels) around the predicted area of the LEDs in the image that defines the region of interest for image processing and detection of the LEDs.
+
+  // self introduced generic parameters --> can be changed in the launch files
+  unsigned number_of_occlusions;		// Number of occlusions which may be introduced for dianositc reasons
+  unsigned number_of_false_detections;	// Number of false detections which may be introduced for diagnostic reasons
+  bool bUseParticleFilter; 				// Boolean which defines if the particle filter is used or not
+  bool bUseCamPos; 				// Boolean which defines if the movement of the camer is considered or not
+  int N_Particle;						// Number of used particles per estimation
+  double maxAngularNoise; 					// max angular noise added by the particle (rad)
+  double minAngularNoise;					// min angular noise added by the particle (rad)
+  double maxTransitionNoise;				// max transition noise added by the particle (m)
+  double minTransitionNoise;				// min transition noise added by the particle (m)
+  double back_projection_pixel_tolerance_PF; 		// back_projection_tolerance of the PF is different to the one of the initialisation
+  bool active_markers; 					// tells if the UAV has active or passive markers
+  bool useOnlineExposeTimeControl;					// boolean which tells if the algorithm uses an online image or just a video (if online image, use variable exposure time)
+  int expose_time_base;					// exposure time assumed to be optimal for distances in z-direction closer than 2m
+
+  // parameter used to downgrade markers
+  std::vector<bool> bMarkerDowngrade; // vector which contains the booleans which markers are downgraded
+  bool bMarkerNr1; // boolean if the marker is downgraded or not (true: yes, flase: no)
+  bool bMarkerNr2; // boolean if the marker is downgraded or not (true: yes, flase: no)
+  bool bMarkerNr3; // boolean if the marker is downgraded or not (true: yes, flase: no)
+  bool bMarkerNr4; // boolean if the marker is downgraded or not (true: yes, flase: no)
+  bool bMarkerNr5; // boolean if the marker is downgraded or not (true: yes, flase: no)
+
+
+  struct PubData_struct {
+	  float bPred;
+	  float numIter;
+	  float numDetLED;
+	  float EstProb[4];
+	  float Flag_Fail[2]; // 0: Est succeeded;  1: not engough LED in initialisation  2: not enough LED detected, after initialisation; 3: initialisation failed, no valid correspondences;
+	  	  	  	  	   // 4: corredspondence in initialise failed;  5: histogram failed
+	  	  	  	  	   // 4.1: less than 4 correspondences; 4.2: certainty treshold criteria failed; 4.3: P3P failed, 4.4: ; 4.5: not enough valid correspondences (valid_corr_thresh)
+	  //std::vector<float> EstProb;
+  };
+
+  PubData_struct PubData;
+  
+
 
 
 private:
@@ -117,16 +197,30 @@ private:
                                                        double & certainty);
 
   /**
-   * Calculates the LED and image detection correspondences from the initialisation histogram.
+   * Calculates all possible (resonable) LED and image detection correspondences from the initialisation histogram.
+   *
+   * e.g.
+   *  Histogram: (rows:det; col:LED) threshold = 6
+   * 3 | 9 | 0 | 3 | 2				L D	L D	L D
+   * 3 | 7 | 5 | 8 | 4				1 6	1 6	1 6
+   * 3 | 9 | 2 | 3 | 5			-->	2 1	2 3	2 2  ... etc.
+   * 3 | 3 | 6 | 2 | 7				3 4	3 4	3 2
+   * 3 | 7 | 2 | 2 | 0				4 2	4 2	4 2
+   * 8 | 2 | 0 | 7 | 2				5 4	5 4	5 4
    *
    * \param histogram the initialisation histogram.
+   * \param bInitialisation tells if the function used in the initialisation or in the Reinitialisation
    *
-   * \return the correspondences between the LEDs and the image detections
+   * \return correspondencesVec which contains all possible correspondence vectors. The order is from the most likely to the
+   * most uncertain one.
+   *
+   *
+   * the correspondences between the LEDs and the image detections
    *
    * \see initialise
    *
    */
-  VectorXuPairs correspondencesFromHistogram(MatrixXYu & histogram);
+  std::vector<VectorXuPairs> correspondencesFromHistogram(MatrixXYu histogram, bool bInitialisation); //  VectorXuPairs
 
   /**
    * Calculates the minimum distances between two sets of 2D points and their pairs.
@@ -338,7 +432,7 @@ public:
    */
   PoseEstimator();
 
-  void augmentImage(cv::Mat &image);
+  void augmentImage(cv::Mat &image, std::vector<bool> found_body_pose);
 
   /**
    * Sets the positions of the markers on the object.
@@ -348,7 +442,7 @@ public:
    * \see object_points
    *
    */
-  void setMarkerPositions(List4DPoints positions_of_markers_on_object);
+  void setMarkerPositions(List4DPoints positions_of_markers_on_object, std::vector<List4DPoints> positions_of_markers_on_object_vector);
 
   /**
    * Returns the positions of the markers on the object in the object-fixed coordinate frame
@@ -363,7 +457,7 @@ public:
   /**
    * Estimates the pose of the tracked object
    */
-  bool estimateBodyPose(cv::Mat image, double time_to_predict);
+  std::vector<bool> estimateBodyPose(cv::Mat image, double time_to_predict, std_msgs::Duration &timeInitEst);
 
   /**
    * Sets the time at which the pose will be calculated.
@@ -384,6 +478,11 @@ public:
    *
    */
   double getPredictedTime();
+  
+  /*
+   * Returns the values which will be published
+   */
+  PubData_struct getPublisherData();
 
   /**
    * Sets the predicted pose of the object.
@@ -403,7 +502,7 @@ public:
    * \see predicted_pose
    *
    */
-  Eigen::Matrix4d getPredictedPose();
+  Eigen::Matrix4d getPredictedPose(int objectNumber);
 
   /**
    * Returns the covariance of the predicted pose ot the camera.
@@ -413,7 +512,7 @@ public:
    * \see covariance
    *
    */
-  Matrix6d getPoseCovariance();
+  Matrix6d getPoseCovariance(int objectNumber);
 
   /**
    * Sets the image points of the markers/LEDs that have been detected in the image.
@@ -672,7 +771,7 @@ public:
    * \param time_to_predict the time at which the pose is to be calculated
    *
    */
-  void predictPose(double time_to_predict);
+  Eigen::Matrix4d predictPose(double time_to_predict);  // returns the exponential map
 
   /**
    * Predicts the position of the markers/LEDs in the image.
@@ -690,7 +789,7 @@ public:
    * \see project2d
    *
    */
-  void predictMarkerPositionsInImage();
+  void predictMarkerPositionsInImage(Eigen::Matrix4d camMoveInv, Eigen::Matrix4d predictionMatrix);
 
   /**
    * Finds possible correspondences between detected image points and markers/LEDs on the object.
@@ -716,12 +815,16 @@ public:
    * threshold #certainty_threshold_, then that correspondence is considered to be 'valid'. If the ratio of correspondences that are valid is
    * greater than #valid_correspondence_threshold_, then the correspondences are considered to be correct.
    *
+   * This function is used during the (re-)initiallisation process. Compared to the particle filter, they only calculate the 'correct' pose.
+   * But the particle filter (which comes to action if the (re-)initialisation process succeeded) needs not only one pose, but lots of particles (poses).
+   * To obtain these, all poses which are regarded as valied are stored as possible poses (PoseParticles).
+   *
    * \return
    *   - \b 0 if the correspondences are not valid
    *   - \b 1 if the correspondences are valid
    *
    */
-  unsigned checkCorrespondences();
+  unsigned checkCorrespondences(int & NumberOfP3PEstimation, int objectNumber, int minNumCorr);
 
   /**
    * Performs the brute-force initialisation to determine the LED/marker and image detection correspondences and the pose of the object.
@@ -746,7 +849,7 @@ public:
    *
    * \see correspondencesFromHistogram, checkCorrespondences
    */
-  unsigned initialise();
+  unsigned initialise(int objectNumber);
 
   /**
    * Optimises the predicted pose using a Gauss-Newton optimisation to minimise the squared reprojection error between the LEDs/markers and image detections.
@@ -798,7 +901,90 @@ public:
    * Determines the correspondences using a nearest neighbour search between the predicted position of the LEDs in the image and the actual detected LEDs in the image
    *
    */
-  void findCorrespondencesAndPredictPose(double & time_to_predict);
+  void findCorrespondencesAndPredictPose(double & time_to_predict, int objectNumber, List2DPoints detected_led_positions);
+  
+  /*
+   * calculates the probability of the different P3P estimations
+   */
+  
+  float * setP3PEstProb(float error_vec[4]);//, std::vector<float>  Prob_vec);
+
+
+  /**
+   * no more used
+   *
+   */
+  std::vector<int> getCorrespondingDetections(double number, unsigned Base , unsigned numLED); // decodes the detection correspondence number
+
+  /**
+   * displays the martix with ROS_INFO
+   * \param input matrix the matrix which will be displayed
+   *
+   */
+  void displayMatrix(Eigen::Matrix4d inputMatrix);
+
+
+  /**
+   * calculates the probability (weight) of the predicted pose according to the measurement (detections on camera images)
+   *
+   * the weight is calculated according to the distance between the prediced marker positions on the image plane and the detections made on the image plane
+   *
+   * the weigthing function is the following:
+   * Probability = sum(totalNumberOfMarkers + ((back_projection_pixel_tolerance_ - distance)/back_projection_pixel_tolerance_)²)
+   * Marker predictions which are further away than back_projection_pixel_tolerance_ to any detections, are nedglected
+   *
+   * to take self occlusions into account, there is a punishment for multiple prediction markers which belong to the same detection.
+   * In this case the probability will be reduced by: 3*numOfSelfOcclusion
+   *
+   * The function does also consider the possibility to downgrade single markers. In this case the probability will by reduced by two for every downgraded marker
+   *
+   * \param image_pts the detections from the image plane
+   * \param object_pts the predicted marker positions on the image plane
+   * \param correspondencesVec vector containing the possible correspondences
+   *
+   */
+  double calculateEstimationProbability(const List2DPoints & image_pts, const List2DPoints & object_pts, std::vector<VectorXuPairs> & correspondencesVec);
+
+  /**
+   * Returns the Pose particle of the corresponding UAV (object number)
+   *
+   * \param objectNumber number of the UAV to distinguish in the case more than one UAV is considered
+   *
+   */
+  std::vector<Eigen::Matrix4d> getPoseParticles(int objectNumber);
+
+  /**
+   * Returns the resmapled Pose particle of the corresponding UAV (object number)
+   *
+   * \param objectNumber number of the UAV to distinguish in the case more than one UAV is considered
+   *
+   */
+  std::vector<Eigen::Matrix4d> getResampledParticles(int objectNumber);
+
+  /**
+   * checks if all elements of the vector are distinct
+   * If so, the function returns true, if not false is returned
+   *
+   * \param correspondingDetections vector which will be checked
+   *
+   */
+  bool checkAmbiguity(std::vector<int> correspondingDetections);
+
+  int detectionGroups(); // separates the different detections into different groups (separate UAV's and very false detections)
+
+  /**
+   * This functon is very similar to initialise(). The difference here is that not all possible combination are tested to get an estimation.
+   * To solve the P3P problem 3 detections and 3 estimated positions on the image plane are needed. This function takes 2 given correspondences
+   * and uses a random detection and prediction for the third points. This lowers the calculation time a lot and still provides a correct estimation.
+   *
+   * This function is used if the estimation of the particle filter is not very good, but the algorithm is still keeping track of the UAV and therefore
+   * not a complete initialisation is needed. This is also important in noisy environments
+   *
+   * \param correspondences_given vector which the given correspondences (min size is 3)
+   * \param objectNumber vector which will be checked
+   *
+   */
+  unsigned P3P_short(VectorXuPairs correspondences_given, int objectNumber);
 
 };
 

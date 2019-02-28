@@ -457,7 +457,7 @@ public:
   /**
    * Estimates the pose of the tracked object
    */
-  std::vector<bool> estimateBodyPose(cv::Mat image, double time_to_predict, std_msgs::Duration &timeInitEst);
+  std::vector<bool> estimateBodyPose(cv::Mat image, double time_to_predict, std_msgs::Duration &timeInitEst, cv::Point3i &ROI_center);
 
   /**
    * Sets the time at which the pose will be calculated.

@@ -66,7 +66,7 @@ List4DPoints PoseEstimator::getMarkerPositions()
   return object_points_;
 }
 
-std::vector<bool> PoseEstimator::estimateBodyPose(cv::Mat image, double time_to_predict, std_msgs::Duration &timeInitEst)
+std::vector<bool> PoseEstimator::estimateBodyPose(cv::Mat image, double time_to_predict, std_msgs::Duration &timeInitEst, cv::Point3i &ROI_center)
 {
 
   if (bUseParticleFilter) // use particle filter for pose estimation
@@ -462,7 +462,16 @@ std::vector<bool> PoseEstimator::estimateBodyPose(cv::Mat image, double time_to_
 									  useOnlineExposeTimeControl, expose_time_base);
 		    }
 		    // ---> store the region of interest and the detectios found (incl. occluded and false detections) for the individual object
-		    region_of_interest_Vec[objectNumber] = region_of_interest_;
+		    region_of_interest_Vec[objectNumber] = region_of_interest_;  
+		    /* ----- TIMO ------- */
+		    cv::Point3i ROItest;
+		    
+		    ROItest.x = region_of_interest_Vec[objectNumber].x + region_of_interest_Vec[objectNumber].width / 2 ;
+		    ROItest.y = region_of_interest_Vec[objectNumber].y + region_of_interest_Vec[objectNumber].height / 2 ;
+		    ROI_center.x = ROItest.x;
+		    ROI_center.y = ROItest.y;
+		    /* -------------------*/
+		    
 		    distorted_detection_centers_Vec[objectNumber] = distorted_detection_centers_;
 
 		    // ---> get the coordinates of the detected points

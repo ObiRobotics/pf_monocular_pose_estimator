@@ -45,6 +45,7 @@
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <geometry_msgs/PoseArray.h>
 #include <geometry_msgs/Pose.h>
+#include <geometry_msgs/PointStamped.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <nav_msgs/Odometry.h>
 #include <Eigen/Dense>
@@ -93,6 +94,9 @@ private:
   ros::Publisher particle_pub_2; // displays the estimated particles
   ros::Publisher resampled_particle_pub_1; // displays the resampled particles
   ros::Publisher resampled_particle_pub_2; // displays the resampled particles
+  //TIMO
+  ros::Publisher image_pos_pub;
+  
   //ros::Publisher bEstimation_pub_; // tells if an estimation could have been calculated or not
   //ros::Publisher bPrediction_pub_; // tells if the prediction or the brute force algorithm was used
   ros::Publisher statistics_pub_;
@@ -110,6 +114,10 @@ private:
 
   // define messages
   geometry_msgs::PoseWithCovarianceStamped predicted_pose_; //!< The ROS message variable for the estimated pose and covariance of the treated UAV
+  
+  //TIMO
+  geometry_msgs::PointStamped UAV_pixel_pose_;
+  
   std_msgs::Duration timePoseEst; // time needed to do the pose estimation
   std_msgs::Duration timeInitEst; // time needed to initialise the pose
   //std_msgs::Bool bEstimation; // boolean which tells if an estimation could be calculated or not

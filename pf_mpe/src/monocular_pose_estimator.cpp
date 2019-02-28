@@ -67,6 +67,12 @@ MPENode::MPENode(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private)
   resampled_particle_pub_2 = nh_private_.advertise<geometry_msgs::PoseArray>("ResampledParticles2", 1);
   FailFlag_pub_ = nh_private_.advertise<std_msgs::Float32MultiArray>("FailFlag", 1);
   
+  /*------TIMO------*/
+  
+  image_pos_pub = nh_private_.advertise<geometry_msgs::PointStamped>("UAV_pixel_pose",1);
+  
+  /*----------------*/
+  
   // Initialize image publisher for visualization
   image_transport::ImageTransport image_transport(nh_private_);
   image_pub_ = image_transport.advertise("image_with_detections", 1);
@@ -265,7 +271,7 @@ void MPENode::imageCallback(const sensor_msgs::CompressedImage::ConstPtr& image_
  // if (sensor_msgs::image_encodings::isColor(image_msg->encoding))
         {  
      cv_ptr = cv_bridge::toCvCopy(image_msg, sensor_msgs::image_encodings::BGR8);
-     cv::extractChannel(cv_ptr->image,image,0);//extract red channel      
+     cv::extractChannel(cv_ptr->image,image,2);//extract red channel      
 }
 //else
   //     {
@@ -291,8 +297,8 @@ void MPENode::imageCallback(const sensor_msgs::CompressedImage::ConstPtr& image_
 	return;
     }
   time_to_predict_old = time_to_predict;*/
-
-  const std::vector<bool> found_body_pose = trackable_object_.estimateBodyPose(image, time_to_predict, timeInitEst);
+  cv::Point3i ROI_center;
+  const std::vector<bool> found_body_pose = trackable_object_.estimateBodyPose(image, time_to_predict, timeInitEst, ROI_center); // TIMO
   
   
 
@@ -306,10 +312,20 @@ void MPENode::imageCallback(const sensor_msgs::CompressedImage::ConstPtr& image_
 
       ROS_DEBUG_STREAM("The transform: \n" << transform);
       ROS_DEBUG_STREAM("The covariance: \n" << cov);
-
+      ROS_INFO_STREAM("x pos : "  << ROI_center.x << " y pos : " << ROI_center.y << "\n");
       // Convert transform to PoseWithCovarianceStamped message
       predicted_pose_.header.stamp = image_msg->header.stamp;
       //predicted_pose_.header.frame_id = ref_tf_UAV1;
+      
+      /* ------ TIMO ------*/
+      UAV_pixel_pose_.header.stamp = image_msg->header.stamp;
+      UAV_pixel_pose_.point.x = ROI_center.x;
+      UAV_pixel_pose_.point.y = ROI_center.y;
+      
+      image_pos_pub.publish(UAV_pixel_pose_);
+      /*___________________*/
+      
+      
       predicted_pose_.header.frame_id = "world";
 
 
